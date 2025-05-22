@@ -26,15 +26,19 @@
             # python312Packages.torchvision-bin
             # python312Packages.torchaudio
 
+            gcc
+
             uv
           ];
 
 
           postVenvCreation = ''
+            export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
             uv sync
           '';
 
           shellHook = ''
+            export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
             venvShellHook
             uv sync
           '';
