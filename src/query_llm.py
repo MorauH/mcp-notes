@@ -5,10 +5,11 @@ from langchain_openai.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 from vault_obsidian import ObsidianVault
+from vault import Vault
 
 
 class LLMVaultProcessor:
-    def __init__(self, vault: ObsidianVault, llm_model: str = "gpt-4.1-nano"):
+    def __init__(self, vault: Vault, llm_model: str = "gpt-4.1-nano"):
         """Initialize the LLM processor
         
         Args:

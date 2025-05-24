@@ -49,6 +49,16 @@ async def simple_mcp_test():
                         }
                     )
                     logger.info(f"Query result: {query_result}")
+
+                    logger.info("\n4. Calling 'summarize_topic_from_notes' tool...")
+                    summarize_result = await session.call_tool(
+                        name="summarize_topic_from_notes",
+                        arguments={
+                            "topic": "Artificial Intelligence",
+                            "include_extended_context": True
+                        }
+                    )
+                    logger.info(f"Summarize result: {summarize_result}")
                     
                 else:
                     logger.warning("No tools found on the server.")

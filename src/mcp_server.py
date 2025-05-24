@@ -12,6 +12,8 @@ from vault import Vault
 from vault_obsidian import ObsidianVault
 from tools_registry import ToolRegistry
 from tools_vault import VaultTools
+from query_llm import LLMVaultProcessor
+from tools_llm import LLMTools
 
 
 
@@ -250,14 +252,17 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
         return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
-def initialize_server(vault: Vault):
+def initialize_server(vault: Vault=None, llm_processor: LLMVaultProcessor=None):
     """Initialize the server by registering all tools"""
     logger.info("Initializing MCP server...")
     
     # Register all tool modules
     MathTools.register_all()
     StringTools.register_all()
-    VaultTools.register_all(registry=registry, vault=vault)
+    if vault is not None:
+        VaultTools.register_all(registry=registry, vault=vault)
+    if llm_processor is not None:
+        LLMTools.register_all(registry=registry, llm_processor=llm_processor)
     
     logger.info(f"Server initialized with {len(registry.get_tools())} tools")
     
@@ -283,13 +288,15 @@ async def main():
     relative_persistant_path = "./persistant"
     
     vault = ObsidianVault(vault_path, relative_persistant_path)
+
+    llm_processor = LLMVaultProcessor(vault=vault)
     
     # Update the index
     num_docs = vault.update_index()
     print(f"Indexed {num_docs} new/changed documents")
 
     # Initialize MCP server
-    initialize_server(vault=vault)
+    initialize_server(vault=vault, llm_processor=llm_processor)
 
     logger.info("Starting MCP server...")
     try:
