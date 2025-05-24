@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import asyncio
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -14,7 +15,8 @@ async def simple_mcp_test():
 
     server_params = StdioServerParameters(
         command="python",
-        args=["src/mcp_server.py"]
+        args=["src/mcp_server.py"],
+        env=os.environ.copy() # Pass all environment variables (req for numpy on nixos)
     )
     # -------------------
 
@@ -37,6 +39,17 @@ async def simple_mcp_test():
                     logger.info(f"Found {len(tools_result.tools)} tools:")
                     for tool in tools_result.tools:
                         logger.info(f"  - {tool.name}: {tool.description}")
+                    
+                    logger.info("\n3. Calling 'vector_query' tool...")
+                    query_result = await session.call_tool(
+                        name="vector_query",
+                        arguments={
+                            "query_text": "Artificial Intelligence",
+                            "top_k": 2
+                        }
+                    )
+                    logger.info(f"Query result: {query_result}")
+                    
                 else:
                     logger.warning("No tools found on the server.")
 

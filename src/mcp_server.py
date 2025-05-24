@@ -1,4 +1,5 @@
 
+import os
 import asyncio
 from typing import Any, Dict, List, Optional
 from mcp.server import Server, NotificationOptions
@@ -7,6 +8,12 @@ from mcp.server.models import InitializationOptions
 from mcp.types import Tool, TextContent
 import logging
 
+from vault import Vault
+from vault_obsidian import ObsidianVault
+from tools_registry import ToolRegistry
+from tools_vault import VaultTools
+
+
 
 
 # Configure logging
@@ -14,42 +21,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create the MCP server
-app = Server("echo-mcp-server")
-
-
-class ToolRegistry:
-    """Registry for managing tools in a modular way"""
-    
-    def __init__(self):
-        self.tools: Dict[str, Tool] = {}
-        self.handlers: Dict[str, callable] = {}
-    
-    def register_tool(self, tool: Tool, handler: callable):
-        """Register a tool with its handler"""
-        self.tools[tool.name] = tool
-        self.handlers[tool.name] = handler
-        logger.info(f"Registered tool: {tool.name}")
-    
-    def get_tools(self) -> List[Tool]:
-        """Get all registered tools"""
-        return list(self.tools.values())
-    
-    async def call_tool(self, name: str, arguments: Dict[str, Any]) -> List[TextContent]:
-        """Call a tool by name"""
-        if name not in self.handlers:
-            raise ValueError(f"Unknown tool: {name}")
-        
-        handler = self.handlers[name]
-        result = await handler(arguments)
-        
-        # Ensure result is always a list of TextContent
-        if isinstance(result, str):
-            return [TextContent(type="text", text=result)]
-        elif isinstance(result, list):
-            return result
-        else:
-            return [TextContent(type="text", text=str(result))]
-
+app = Server("vault-mcp-server")
 
 # Global registry instance
 registry = ToolRegistry()
@@ -278,13 +250,14 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
         return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
-def initialize_server():
+def initialize_server(vault: Vault):
     """Initialize the server by registering all tools"""
     logger.info("Initializing MCP server...")
     
     # Register all tool modules
     MathTools.register_all()
     StringTools.register_all()
+    VaultTools.register_all(registry=registry, vault=vault)
     
     logger.info(f"Server initialized with {len(registry.get_tools())} tools")
     
@@ -298,11 +271,25 @@ def initialize_server():
 
 
 
-async def main_server_loop():
+async def main():
     """
     Initializes all tools and starts the stdio server, running indefinitely.
     """
-    initialize_server()
+
+    # Set paths
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    vault_path = f"{curr_path}/../persistant/test_vault"
+
+    relative_persistant_path = "./persistant"
+    
+    vault = ObsidianVault(vault_path, relative_persistant_path)
+    
+    # Update the index
+    num_docs = vault.update_index()
+    print(f"Indexed {num_docs} new/changed documents")
+
+    # Initialize MCP server
+    initialize_server(vault=vault)
 
     logger.info("Starting MCP server...")
     try:
@@ -313,8 +300,8 @@ async def main_server_loop():
                 read_stream,
                 write_stream,
                 InitializationOptions(
-                    server_name="YourServerName",
-                    server_version="0.1.0",
+                    server_name="Vault MCP Server",
+                    server_version=os.environ['MCP_VERSION'],
                     capabilities=app.get_capabilities(
                         notification_options=NotificationOptions(),
                         experimental_capabilities={}
@@ -333,7 +320,7 @@ async def main_server_loop():
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main_server_loop())
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Server terminated by user (Ctrl+C).")
     except Exception as e:

@@ -34,11 +34,13 @@
 
           postVenvCreation = ''
             export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
+            export MCP_VERSION="0.1.0"
             uv sync
           '';
 
           shellHook = ''
             export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
+            export MCP_VERSION="0.1.0"
             venvShellHook
             uv sync
           '';

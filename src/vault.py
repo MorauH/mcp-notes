@@ -78,7 +78,7 @@ class Vault:
         self.embeddings = OpenAIEmbeddings(model=embedding_model)
         
         # Initialize storage and indexes
-        self.setup_database()
+        self._setup_database()
         self.vector_store = None
         self.link_processor = link_processor
 
@@ -90,7 +90,7 @@ class Vault:
             separators=["\n\n", "\n", " ", ""] 
         )
         
-    def setup_database(self):
+    def _setup_database(self):
         """Set up SQLite database to track files and their hashes"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -115,12 +115,12 @@ class Vault:
         conn.commit()
         conn.close()
         
-    def get_file_hash(self, file_path):
+    def _get_file_hash(self, file_path):
         """Calculate MD5 hash of a file to detect changes"""
         with open(file_path, 'rb') as f:
             return hashlib.md5(f.read()).hexdigest()
             
-    def find_changed_files(self):
+    def _find_changed_files(self):
         """Identify new or modified markdown files"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -130,7 +130,7 @@ class Vault:
             for file in files:
                 if file.endswith('.md'):
                     file_path = os.path.join(root, file)
-                    current_hash = self.get_file_hash(file_path)
+                    current_hash = self._get_file_hash(file_path)
                     
                     cursor.execute("SELECT hash FROM files WHERE path = ?", (file_path,))
                     result = cursor.fetchone()
@@ -141,11 +141,11 @@ class Vault:
         conn.close()
         return changed_files
         
-    def update_file_record(self, file_path):
+    def _update_file_record(self, file_path):
         """Update the database record for a file"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        file_hash = self.get_file_hash(file_path) if os.path.exists(file_path) else None
+        file_hash = self._get_file_hash(file_path) if os.path.exists(file_path) else None
         cursor.execute(
             "INSERT OR REPLACE INTO files VALUES (?, ?, ?)",
             (file_path, file_hash, datetime.now().isoformat())
@@ -153,71 +153,7 @@ class Vault:
         conn.commit()
         conn.close()
         
-    def update_index(self):
-        """Update the vector store with changed files"""
-        self.link_processor.build_link_graph()
-        
-        changed_files = self.find_changed_files()
-        
-        total_indexed_docs = 0
-        
-        if self.vector_store is None:
-            try:
-                self.vector_store = FAISS.load_local(self.faiss_index_path, self.embeddings, allow_dangerous_deserialization=True)
-                print(f"Loaded existing FAISS index from {self.faiss_index_path}.")
-            except Exception as e:
-                print(f"Could not load FAISS index from {self.faiss_index_path}. Creating a new one.")
-                self.vector_store = None 
-
-        # We'll process all changed files, but add their *chunks* in smaller batches to OpenAI
-        all_new_chunks = []
-        
-        for file_path in changed_files:
-            docs = self.process_file_with_links(file_path)
-            all_new_chunks.extend(docs) # 'docs' are already chunks here
-            self.update_file_record(file_path) # Update database for each file as it's processed
-
-        # Now, take all the collected chunks and batch them for embedding
-        # This batch size should be significantly smaller than the 'file batch size'
-        # to ensure the total tokens sent to OpenAI stays under 300,000.
-        # A batch_size of ~100-500 chunks is usually safe depending on chunk_size.
-        chunk_api_batch_size = 200 # Adjust this value based on your chunk_size and OpenAI limit
-                                   # Example: if chunk_size=1500, then 200 chunks = 300,000 tokens
-                                   # This value directly affects the API call size.
-        
-        for i in range(0, len(all_new_chunks), chunk_api_batch_size):
-            batch_of_chunks = all_new_chunks[i:i + chunk_api_batch_size]
-            
-            if not batch_of_chunks:
-                continue # Skip if batch is empty
-
-            texts_to_embed = [doc["content"] for doc in batch_of_chunks]
-            metadatas_for_embed = [doc["metadata"] for doc in batch_of_chunks]
-
-            try:
-                if self.vector_store is None:
-                    # If this is the very first batch and vector store is None, initialize it
-                    self.vector_store = FAISS.from_texts(
-                        texts_to_embed, self.embeddings, metadatas=metadatas_for_embed
-                    )
-                else:
-                    self.vector_store.add_texts(texts_to_embed, metadatas=metadatas_for_embed)
-                
-                total_indexed_docs += len(batch_of_chunks)
-                print(f"Indexed {len(batch_of_chunks)} chunks in current API batch. Total: {total_indexed_docs}")
-
-            except Exception as e:
-                print(f"Error during embedding API call for a batch of chunks: {e}")
-                # TODO: log 'batch_of_chunks' here or implement retry logic
-                raise e
-
-        if self.vector_store:
-            self.vector_store.save_local(self.faiss_index_path)
-            print(f"FAISS index saved to {self.faiss_index_path}")
-            
-        return total_indexed_docs
-    
-    def process_file_with_links(self, file_path):
+    def _process_file_with_links(self, file_path):
         """Process a markdown file with link awareness"""
         note_name = os.path.basename(file_path).replace('.md', '')
         
@@ -260,6 +196,74 @@ class Vault:
             })
         
         return docs
+    
+    #####################
+    # Database functions
+    #####################
+
+    def update_index(self):
+        """Update the vector store with changed files"""
+        self.link_processor.build_link_graph()
+        
+        changed_files = self._find_changed_files()
+        
+        total_indexed_docs = 0
+        
+        if self.vector_store is None:
+            try:
+                self.vector_store = FAISS.load_local(self.faiss_index_path, self.embeddings, allow_dangerous_deserialization=True)
+                print(f"Loaded existing FAISS index from {self.faiss_index_path}.")
+            except Exception as e:
+                print(f"Could not load FAISS index from {self.faiss_index_path}. Creating a new one.")
+                self.vector_store = None 
+
+        # We'll process all changed files, but add their *chunks* in smaller batches to OpenAI
+        all_new_chunks = []
+        
+        for file_path in changed_files:
+            docs = self._process_file_with_links(file_path)
+            all_new_chunks.extend(docs) # 'docs' are already chunks here
+            self._update_file_record(file_path) # Update database for each file as it's processed
+
+        # Now, take all the collected chunks and batch them for embedding
+        # This batch size should be significantly smaller than the 'file batch size'
+        # to ensure the total tokens sent to OpenAI stays under 300,000.
+        # A batch_size of ~100-500 chunks is usually safe depending on chunk_size.
+        chunk_api_batch_size = 200 # Adjust this value based on your chunk_size and OpenAI limit
+                                   # Example: if chunk_size=1500, then 200 chunks = 300,000 tokens
+                                   # This value directly affects the API call size.
+        
+        for i in range(0, len(all_new_chunks), chunk_api_batch_size):
+            batch_of_chunks = all_new_chunks[i:i + chunk_api_batch_size]
+            
+            if not batch_of_chunks:
+                continue # Skip if batch is empty
+
+            texts_to_embed = [doc["content"] for doc in batch_of_chunks]
+            metadatas_for_embed = [doc["metadata"] for doc in batch_of_chunks]
+
+            try:
+                if self.vector_store is None:
+                    # If this is the very first batch and vector store is None, initialize it
+                    self.vector_store = FAISS.from_texts(
+                        texts_to_embed, self.embeddings, metadatas=metadatas_for_embed
+                    )
+                else:
+                    self.vector_store.add_texts(texts_to_embed, metadatas=metadatas_for_embed)
+                
+                total_indexed_docs += len(batch_of_chunks)
+                print(f"Indexed {len(batch_of_chunks)} chunks in current API batch. Total: {total_indexed_docs}")
+
+            except Exception as e:
+                print(f"Error during embedding API call for a batch of chunks: {e}")
+                # TODO: log 'batch_of_chunks' here or implement retry logic
+                raise e
+
+        if self.vector_store:
+            self.vector_store.save_local(self.faiss_index_path)
+            print(f"FAISS index saved to {self.faiss_index_path}")
+            
+        return total_indexed_docs
     
     def record_processed_output(self,
                                 output_id_prefix: str,
@@ -370,7 +374,7 @@ class Vault:
             f.write(content)
         
         # Update the file record
-        self.update_file_record(note_path)
+        self._update_file_record(note_path)
     
     def create_new_note(self, title, content, folder=""):
         """Create a new note in the vault"""
@@ -391,4 +395,4 @@ class Vault:
         os.remove(note_path)
         
         # Update the file record
-        self.update_file_record(note_path)
+        self._update_file_record(note_path)
