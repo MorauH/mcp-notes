@@ -4,7 +4,7 @@ from mcp.types import Tool, TextContent
 import logging
 
 from vault import Vault
-from tools_registry import ToolRegistry
+from tools import ToolRegistry
 
 
 logger = logging.getLogger(__name__)

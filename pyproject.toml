@@ -16,4 +16,7 @@ dependencies = [
     "faiss-cpu",
     "mcp",
     "langchain-mcp-adapters",
+    "langgraph",
+    "aiohttp",
+    "aiohttp-cors",
 ]

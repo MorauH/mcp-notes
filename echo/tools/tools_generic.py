@@ -1,41 +1,20 @@
 
-import os
-import asyncio
 from typing import Any, Dict, List, Optional
-from mcp.server import Server, NotificationOptions
-from mcp.server.stdio import stdio_server
-from mcp.server.models import InitializationOptions
 from mcp.types import Tool, TextContent
 import logging
 
-from vault import Vault
-from vault_obsidian import ObsidianVault
-from tools_registry import ToolRegistry
-from tools_vault import VaultTools
-from query_llm import LLMVaultProcessor
-from tools_llm import LLMTools
+from tools import ToolRegistry
 
 
-
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create the MCP server
-app = Server("vault-mcp-server")
 
-# Global registry instance
-registry = ToolRegistry()
-
-
-# ============= RELATED TOOL MODULES =============
 
 class MathTools:
     """Mathematical operations tools"""
     
     @staticmethod
-    def register_all():
+    def register_all(registry: ToolRegistry):
         """Register all math tools"""
         
         # Addition tool
@@ -141,7 +120,7 @@ class StringTools:
     """String manipulation tools"""
     
     @staticmethod
-    def register_all():
+    def register_all(registry: ToolRegistry):
         """Register all string tools"""
         
         # Uppercase tool
@@ -234,101 +213,3 @@ class StringTools:
             return f"Character count (without spaces): {count} characters"
 
 
-# ============= MCP SERVER HANDLERS =============
-
-@app.list_tools()
-async def list_tools() -> List[Tool]:
-    """List all available tools"""
-    return registry.get_tools()
-
-
-@app.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
-    """Call a tool by name"""
-    try:
-        return await registry.call_tool(name, arguments)
-    except Exception as e:
-        logger.error(f"Error calling tool {name}: {str(e)}")
-        return [TextContent(type="text", text=f"Error: {str(e)}")]
-
-
-def initialize_server(vault: Vault=None, llm_processor: LLMVaultProcessor=None):
-    """Initialize the server by registering all tools"""
-    logger.info("Initializing MCP server...")
-    
-    # Register all tool modules
-    MathTools.register_all()
-    StringTools.register_all()
-    if vault is not None:
-        VaultTools.register_all(registry=registry, vault=vault)
-    if llm_processor is not None:
-        LLMTools.register_all(registry=registry, llm_processor=llm_processor)
-    
-    logger.info(f"Server initialized with {len(registry.get_tools())} tools")
-    
-    # Log all registered tools
-    for tool in registry.get_tools():
-        logger.info(f"  - {tool.name}: {tool.description}")
-
-
-
-
-
-
-
-async def main():
-    """
-    Initializes all tools and starts the stdio server, running indefinitely.
-    """
-
-    # Set paths
-    curr_path = os.path.dirname(os.path.abspath(__file__))
-    vault_path = f"{curr_path}/../persistant/test_vault"
-
-    relative_persistant_path = "./persistant"
-    
-    vault = ObsidianVault(vault_path, relative_persistant_path)
-
-    llm_processor = LLMVaultProcessor(vault=vault)
-    
-    # Update the index
-    num_docs = vault.update_index()
-    print(f"Indexed {num_docs} new/changed documents")
-
-    # Initialize MCP server
-    initialize_server(vault=vault, llm_processor=llm_processor)
-
-    logger.info("Starting MCP server...")
-    try:
-        async with stdio_server() as (read_stream, write_stream):
-            logger.info("MCP server running and awaiting client connections...")
-
-            await app.run(
-                read_stream,
-                write_stream,
-                InitializationOptions(
-                    server_name="Vault MCP Server",
-                    server_version=os.environ['MCP_VERSION'],
-                    capabilities=app.get_capabilities(
-                        notification_options=NotificationOptions(),
-                        experimental_capabilities={}
-                    )
-                )
-            )
-
-    except asyncio.CancelledError:
-        logger.info("Server task cancelled during stdio_server operation.")
-    except Exception as e:
-        logger.error(f"An error occurred within stdio_server context: {e}", exc_info=True)
-        raise # Re-raise to let asyncio.run's outer handler catch it.
-    finally:
-        logger.info("MCP server stopped.")
-
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Server terminated by user (Ctrl+C).")
-    except Exception as e:
-        logger.error(f"Server exited with an unhandled exception: {e}", exc_info=True)

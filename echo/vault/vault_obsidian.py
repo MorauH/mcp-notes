@@ -11,7 +11,7 @@ from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vault import LinkProcessor, Vault
+from vault.vault import LinkProcessor, Vault
 
 class ObsidianVault(Vault):
     """Advanced Obsidian vault processor"""

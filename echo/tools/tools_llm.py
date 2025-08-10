@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional
 from mcp.types import Tool, TextContent
 import logging
 
-from tools_registry import ToolRegistry
-from query_llm import LLMVaultProcessor
+from tools import ToolRegistry
+from llm.query_llm import LLMVaultProcessor
 
 
 logger = logging.getLogger(__name__)
