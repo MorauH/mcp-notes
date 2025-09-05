@@ -1,5 +1,5 @@
 {
-  description = "Setup python with .venv";
+  description = "Setup development environment";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
@@ -13,36 +13,43 @@
           system = system;
           config.cudaSupport = true;
           config.cudnnSupport = true;
+          config.allowUnfree = true;
         };
+
+        # Python environment
+        pythonEnv = pkgs.python313.withPackages (pkgs: with pkgs; [
+          #llama-index
+          #llama-index-embeddings-openai
+          openai
+          watchdog
+          numpy
+          langchain-community
+          langchain-text-splitters
+          langchain-openai
+          faiss
+          mcp
+          langgraph
+          aiohttp
+          aiohttp-cors
+          pytest
+          pytest-asyncio
+        ]);
       in
       {
         devShells.default = pkgs.mkShell{
-          venvDir = ".venv";
 
           buildInputs = with pkgs; [
-            python312
-            python312Packages.venvShellHook
-            # python312Packages.torch
-            # python312Packages.torchvision-bin
-            # python312Packages.torchaudio
-
-            gcc
-
-            uv
+            pythonEnv
           ];
 
 
-          postVenvCreation = ''
-            export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
-            export MCP_VERSION="0.1.0"
-            uv sync
-          '';
-
           shellHook = ''
+            # Python path
+            export PYTHONPATH="${pythonEnv}/${pythonEnv.sitePackages}:$PYTHONPATH"
+            export PYTHONPATH=$PYTHONPATH:$(pwd)
+
             export LD_LIBRARY_PATH="${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH"
             export MCP_VERSION="0.1.0"
-            venvShellHook
-            uv sync
           '';
         };
       });

@@ -1,14 +1,29 @@
 import os
+import sys
 import asyncio
 import logging
 
-from vault import ObsidianVault
-from llm.query_llm import LLMVaultProcessor
-from server.mcp_server import VaultMCPServer
-from server.http_server import MCPHttpServer
+from echo.vault import ObsidianVault
+from echo.llm.query_llm import LLMVaultProcessor
+
+from echo.server.mcp_server import VaultMCPServer
+from echo.server.http_server import MCPHttpServer
+from echo.server.stdio_server import MCPStdioServer
+
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+def configure_logging(use_stdio=False):
+    """Configure logging based on server mode"""
+    if use_stdio:
+        # In stdio mode, ensure all logging goes to stderr
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(logging.Formatter('%(levelname)s: %(message)s'))
+        logging.root.addHandler(handler)
+        logging.root.setLevel(logging.INFO)
+    else:
+        # Normal logging configuration for HTTP mode
+        logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,13 +36,14 @@ class ServerConfig:
         self.curr_path = os.path.dirname(os.path.abspath(__file__))
         self.vault_path = f"{self.curr_path}/../persistant/test_vault"
         self.relative_persistant_path = "./persistant"
+        self.embedding_model = "text-embedding-3-small"
 
 
 async def initialize_vault(config: ServerConfig):
     """Initialize the vault and LLM processor"""
     logger.info("Initializing vault...")
     
-    vault = ObsidianVault(config.vault_path, config.relative_persistant_path)
+    vault = ObsidianVault(config.vault_path, config.relative_persistant_path, config.embedding_model)
     llm_processor = LLMVaultProcessor(vault=vault)
     
     # Update the index
@@ -41,6 +57,9 @@ async def main(use_http=True, use_stdio=False):
     """
     Main entry point: Initializes vault and starts requested servers.
     """
+    # Configure logging based on server mode
+    configure_logging(use_stdio)
+    
     config = ServerConfig()
     
     try:
@@ -54,13 +73,12 @@ async def main(use_http=True, use_stdio=False):
         runner = None
         if use_http:
             # Create and start HTTP server
-            http_server = MCPHttpServer(base_server)
+            http_server = MCPHttpServer(mcp_server)
             runner = await http_server.start_server(host=config.host, port=config.port)
             logger.info("HTTP server is running")
 
         if use_stdio:
             # Create and start stdio server
-            from server.mcp_stdio import MCPStdioServer
             stdio_server = MCPStdioServer(base_server)
             await stdio_server.start_server()
             logger.info("stdio server is running")
@@ -68,15 +86,11 @@ async def main(use_http=True, use_stdio=False):
         logger.info("Server(s) running. Press Ctrl+C to stop.")
         
         # Keep the server running
-        try:
-            while True:
-                await asyncio.sleep(1)
-        except KeyboardInterrupt:
-            logger.info("Server terminated by user (Ctrl+C).")
-        
-    except Exception as e:
-        logger.error(f"An error occurred: {e}", exc_info=True)
-        raise
+        while True:
+           await asyncio.sleep(1)
+
+    except KeyboardInterrupt:
+        logger.info("Server terminated by user (Ctrl+C).") 
     finally:
         logger.info("MCP server stopped.")
         if 'runner' in locals():
@@ -85,12 +99,12 @@ async def main(use_http=True, use_stdio=False):
 
 if __name__ == "__main__":
     try:
-        # Run both servers by default
-        use_http = os.environ.get('MCP_HTTP_ENABLED', 'true').lower() == 'true'
-        use_stdio = os.environ.get('MCP_STDIO_ENABLED', 'false').lower() == 'true'
+        import argparse
+        parser = argparse.ArgumentParser(description="Echo MCP Server")
+        parser.add_argument("--stdio", action="store_true", help="Run in stdio mode")
+        args = parser.parse_args()
         
-        asyncio.run(main(use_http=use_http, use_stdio=True))
+        # Run in stdio mode if flag is set, otherwise HTTP mode
+        asyncio.run(main(use_http=not args.stdio, use_stdio=args.stdio))
     except KeyboardInterrupt:
         logger.info("Server terminated by user (Ctrl+C).")
-    except Exception as e:
-        logger.error(f"Server exited with an unhandled exception: {e}", exc_info=True)

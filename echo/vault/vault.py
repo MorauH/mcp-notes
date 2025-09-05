@@ -58,7 +58,7 @@ class Vault:
                  vault_path: str, 
                  persistent_path: str,
                  link_processor: LinkProcessor,
-                 embedding_model: str = "text-embedding-3-small",
+                 embedding_model: str,
                  ):
         """Initialize the vault processor
         
@@ -71,8 +71,7 @@ class Vault:
         self.vault_path = vault_path
         self.db_path = os.path.join(persistent_path, 'index.db')
 
-        curr_path = os.path.dirname(os.path.abspath(__file__))
-        self.faiss_index_path = os.path.join(curr_path, '..', persistent_path, 'faiss_index')
+        self.faiss_index_path = os.path.join(persistent_path, 'faiss_index')
             
         # Initialize embedding model
         self.embeddings = OpenAIEmbeddings(model=embedding_model)

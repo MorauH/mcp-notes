@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Optional
 from mcp.types import Tool, TextContent
 import logging
 
-from vault import Vault
-from tools import ToolRegistry
+from echo.vault import Vault
+from echo.tools import ToolRegistry
 
 
 logger = logging.getLogger(__name__)

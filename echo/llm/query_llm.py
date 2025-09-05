@@ -4,7 +4,7 @@ from datetime import datetime
 from langchain_openai.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
-from vault import ObsidianVault, Vault
+from echo.vault import ObsidianVault, Vault
 
 
 class LLMVaultProcessor:

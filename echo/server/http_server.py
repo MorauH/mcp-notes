@@ -1,11 +1,15 @@
 import os
 import logging
+import json
 from typing import Any, Dict
 from aiohttp import web, WSMsgType
 import aiohttp_cors
 from mcp.server import Server
+from mcp.server.stdio import stdio_server
 from mcp.server.models import InitializationOptions
 from mcp.server import NotificationOptions
+
+from echo.server.mcp_server import VaultMCPServer
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +39,7 @@ class WebSocketWriteStream:
     async def write(self, data):
         """Write data to the WebSocket"""
         if isinstance(data, bytes):
-            data = data.decode().strip()
+            data = data.decode().rstrip('\n')
         await self.websocket.send_str(data)
         
     async def drain(self):
@@ -83,8 +87,9 @@ class MCPWebSocketHandler:
 class MCPHttpServer:
     """HTTP server with WebSocket support for MCP protocol"""
     
-    def __init__(self, mcp_server: Server):
-        self.mcp_server = mcp_server
+    def __init__(self, vault_mcp_server: VaultMCPServer):
+        self.vault_mcp_server = vault_mcp_server
+        self.mcp_server = vault_mcp_server.get_server()
         self.app = None
         
     async def websocket_handler(self, request):
@@ -100,7 +105,7 @@ class MCPHttpServer:
     async def http_list_tools(self, request):
         """HTTP endpoint to list tools"""
         try:
-            tools = await self.mcp_server.list_tools()
+            tools = self.vault_mcp_server.list_tools()
             tools_data = [
                 {
                     "name": tool.name,
@@ -124,7 +129,7 @@ class MCPHttpServer:
             if not tool_name:
                 return web.json_response({"error": "Tool name is required"}, status=400)
             
-            result = await self.mcp_server.call_tool(tool_name, arguments)
+            result = await self.vault_mcp_server.call_tool(tool_name, arguments)
             
             # Convert TextContent to dict for JSON serialization
             result_data = [

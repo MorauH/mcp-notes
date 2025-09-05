@@ -11,7 +11,7 @@ from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from vault.vault import LinkProcessor, Vault
+from echo.vault.vault import LinkProcessor, Vault
 
 class ObsidianVault(Vault):
     """Advanced Obsidian vault processor"""
@@ -19,7 +19,7 @@ class ObsidianVault(Vault):
     def __init__(self, 
                  vault_path: str, 
                  persistent_path: str,
-                 embedding_model: str = "text-embedding-3-small",
+                 embedding_model: str,
                  ):
         super().__init__(
             vault_path=vault_path,

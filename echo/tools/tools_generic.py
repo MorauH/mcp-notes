@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from mcp.types import Tool, TextContent
 import logging
 
-from tools import ToolRegistry
+from echo.tools import ToolRegistry
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class MathTools:
         
         # Addition tool
         add_tool = Tool(
-            name="add",
+            name="math.add",
             description="Add two numbers together",
             inputSchema={
                 "type": "object",
@@ -34,7 +34,7 @@ class MathTools:
         
         # Multiplication tool
         multiply_tool = Tool(
-            name="multiply",
+            name="math.multiply",
             description="Multiply two numbers",
             inputSchema={
                 "type": "object",
@@ -49,7 +49,7 @@ class MathTools:
         
         # Power tool
         power_tool = Tool(
-            name="power",
+            name="math.power",
             description="Raise a number to a power",
             inputSchema={
                 "type": "object",
@@ -64,7 +64,7 @@ class MathTools:
         
         # Factorial tool
         factorial_tool = Tool(
-            name="factorial",
+            name="math.factorial",
             description="Calculate factorial of a positive integer",
             inputSchema={
                 "type": "object",
@@ -125,7 +125,7 @@ class StringTools:
         
         # Uppercase tool
         uppercase_tool = Tool(
-            name="uppercase",
+            name="string.uppercase",
             description="Convert text to uppercase",
             inputSchema={
                 "type": "object",
@@ -139,7 +139,7 @@ class StringTools:
         
         # Reverse tool
         reverse_tool = Tool(
-            name="reverse",
+            name="string.reverse",
             description="Reverse a string",
             inputSchema={
                 "type": "object",
@@ -153,7 +153,7 @@ class StringTools:
         
         # Word count tool
         word_count_tool = Tool(
-            name="word_count",
+            name="string.word_count",
             description="Count words in text",
             inputSchema={
                 "type": "object",
@@ -167,7 +167,7 @@ class StringTools:
         
         # Character count tool
         char_count_tool = Tool(
-            name="char_count",
+            name="string.char_count",
             description="Count characters in text",
             inputSchema={
                 "type": "object",
