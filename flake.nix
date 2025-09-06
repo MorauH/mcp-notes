@@ -40,6 +40,8 @@
 
           buildInputs = with pkgs; [
             pythonEnv
+            gh-copilot
+            gh
           ];
 
 

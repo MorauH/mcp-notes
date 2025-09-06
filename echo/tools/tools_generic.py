@@ -19,7 +19,7 @@ class MathTools:
         
         # Addition tool
         add_tool = Tool(
-            name="math.add",
+            name="math_add",
             description="Add two numbers together",
             inputSchema={
                 "type": "object",
@@ -34,7 +34,7 @@ class MathTools:
         
         # Multiplication tool
         multiply_tool = Tool(
-            name="math.multiply",
+            name="math_multiply",
             description="Multiply two numbers",
             inputSchema={
                 "type": "object",
@@ -49,7 +49,7 @@ class MathTools:
         
         # Power tool
         power_tool = Tool(
-            name="math.power",
+            name="math_power",
             description="Raise a number to a power",
             inputSchema={
                 "type": "object",
@@ -64,7 +64,7 @@ class MathTools:
         
         # Factorial tool
         factorial_tool = Tool(
-            name="math.factorial",
+            name="math_factorial",
             description="Calculate factorial of a positive integer",
             inputSchema={
                 "type": "object",
@@ -125,7 +125,7 @@ class StringTools:
         
         # Uppercase tool
         uppercase_tool = Tool(
-            name="string.uppercase",
+            name="string_uppercase",
             description="Convert text to uppercase",
             inputSchema={
                 "type": "object",
@@ -139,7 +139,7 @@ class StringTools:
         
         # Reverse tool
         reverse_tool = Tool(
-            name="string.reverse",
+            name="string_reverse",
             description="Reverse a string",
             inputSchema={
                 "type": "object",
@@ -153,7 +153,7 @@ class StringTools:
         
         # Word count tool
         word_count_tool = Tool(
-            name="string.word_count",
+            name="string_word_count",
             description="Count words in text",
             inputSchema={
                 "type": "object",
@@ -167,7 +167,7 @@ class StringTools:
         
         # Character count tool
         char_count_tool = Tool(
-            name="string.char_count",
+            name="string_char_count",
             description="Count characters in text",
             inputSchema={
                 "type": "object",
