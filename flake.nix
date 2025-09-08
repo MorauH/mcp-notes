@@ -63,14 +63,26 @@
           pyproject = true;
           build-system = [ pkgs.python313Packages.setuptools ];
 
-          propagatedBuildInputs = [
-            pythonEnv
+          propagatedBuildInputs = with pkgs.python313Packages; [
+            openai
+            watchdog
+            numpy
+            langchain-community
+            langchain-text-splitters
+            langchain-openai
+            faiss
+            mcp
+            langgraph
+            aiohttp
+            aiohttp-cors
+            pytest
+            pytest-asyncio
           ];
-        };
+       };
 
-        apps.default = {
-          type = "app";
-          program = "${self.packages.${system}.default}/bin/echo-mcp";
-        };
+       apps.default = {
+         type = "app";
+         program = "${self.packages.${system}.default}/bin/echo-mcp";
+       };
       });
 }
