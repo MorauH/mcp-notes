@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "echo-mcp"
+version = "0.1.0"
+
+[project.scripts]
+echo-mcp = "echo.main:arg_main"

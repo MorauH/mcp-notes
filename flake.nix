@@ -54,5 +54,23 @@
             export MCP_VERSION="0.1.0"
           '';
         };
+
+        packages.default = pkgs.python313Packages.buildPythonPackage {
+          pname = "echo-mcp";
+          version = "0.1.0";
+          src = ./.;
+
+          pyproject = true;
+          build-system = [ pkgs.python313Packages.setuptools ];
+
+          propagatedBuildInputs = [
+            pythonEnv
+          ];
+        };
+
+        apps.default = {
+          type = "app";
+          program = "${self.packages.${system}.default}/bin/echo-mcp";
+        };
       });
 }

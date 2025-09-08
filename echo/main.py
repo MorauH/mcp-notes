@@ -97,14 +97,17 @@ async def main(use_http=True, use_stdio=False):
             await runner.cleanup()
 
 
+def arg_main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Echo MCP Server")
+    parser.add_argument("--stdio", action="store_true", help="Run in stdio mode")
+    args = parser.parse_args()
+
+    import asyncio
+    asyncio.run(main(use_http=not args.stdio, use_stdio=args.stdio))
+
 if __name__ == "__main__":
     try:
-        import argparse
-        parser = argparse.ArgumentParser(description="Echo MCP Server")
-        parser.add_argument("--stdio", action="store_true", help="Run in stdio mode")
-        args = parser.parse_args()
-        
-        # Run in stdio mode if flag is set, otherwise HTTP mode
-        asyncio.run(main(use_http=not args.stdio, use_stdio=args.stdio))
+        arg_main()
     except KeyboardInterrupt:
         logger.info("Server terminated by user (Ctrl+C).")
